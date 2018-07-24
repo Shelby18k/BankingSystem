@@ -49,7 +49,7 @@ def SignUp():
     state = validityCheck(inp=3)
     pincode = validatePin()
     c = Customer(accountType,fname,lname,address,city,state,pincode)
-    print("Registered Successfully..!\n")
+    c.enterPassword()
     
 
 
