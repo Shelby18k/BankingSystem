@@ -50,6 +50,9 @@ def SignUp():
     pincode = validatePin()
     c = Customer(accountType,fname,lname,address,city,state,pincode)
     c.enterPassword()
+    success = c.registerUser()
+    if success == 1:
+        print("*"*6 + "You are successfully registered with our bank\n")
     
 
 
