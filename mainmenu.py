@@ -68,6 +68,18 @@ def validityCheck(inp=0):
             print('*'*6+'Invalid input'+'*'*6)
             
 
+def enterAmount():
+    while True:
+        try:
+            amt = float(input("Enter amount: "))
+            if amt >= 5000.0:
+                return amt
+            else:
+                raise ValueError()   
+        except:
+            print('*'*6+"Please enter a valid amount:"+'*'*6)
+
+
 def create_customer(id,pwd):
     stmt = "SELECT accounttype,fname,lname,address,city,state,pincode FROM customers where customerid= :1 and password = :2"
     try:
@@ -92,6 +104,7 @@ def address_change(customer):
 
 def money_deposit(customer):
     pass
+    
 
 def money_withdrawal():
     print('Withdraw')
@@ -149,9 +162,22 @@ def SignUp():
     pincode = validatePin()
     c = Customer(accType,fname,lname,address,city,state,pincode)
     c.enterPassword()
-    success = c.registerUser()
-    if success == 1:
+    acctNo = c.registerUser()
+    if accType == 'Saving':
+        stmt = 'INSERT INTO transactioncount(accountid) values(:1)'
+        cur.execute(stmt,{'1':acctNo})
+        con.commit()
+    elif accType == 'Current':
+        print("You need to deposit min. amount of Rs. 5000")
+        amt = enterAmount()
+        stmt = "INSERT INTO transactions(accountid,balance,transtype) values(:1,:2,:3)"
+        cur.execute(stmt,{'1':acctNo,'2':amt,'3':'Credited'})
+        con.commit()
+        
+    if acctNo:
         print("*"*6 + "You are successfully registered with our bank, you must login now..!\n")
+    else:
+        print("*"*6 + "Error registering")
 
 
 def SignIn():

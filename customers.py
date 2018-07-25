@@ -51,9 +51,10 @@ class Customer:
             cur.execute(stmt,{'1':self.accountNumber,'2':self.accountNumber,'3':self.password,'4':self.accountType,'5':self.fname,
                               '6':self.lname,'7':self.address,'8':self.city,'9':self.state,'10':self.pincode})
             con.commit()
-            return 1
+            return self.accountNumber
         except:
             print("An error occurred while registering, please contact admin")
+            return None
 
 
 
@@ -77,5 +78,4 @@ class RegisteredCustomer(Customer):
         
     
     
-# c = Customer('Saving','Tushar','Kansal','Char Dukan Landour Cantt.','Mussoorie', 'Uttarakhand', '248179')
-# c.generateAccountNumber()
+
