@@ -2,6 +2,7 @@ import re
 from customers import Customer
 from BankingSystem.customers import cur
 from BankingSystem.customers import con
+
 accountType = {1: 'Saving',
                2: 'Current'}
 
@@ -65,6 +66,39 @@ def validityCheck(inp=0):
         else: 
             print('*'*6+'Invalid input'+'*'*6)
             
+            
+def address_change():
+    print('Address')
+    pass
+
+def money_deposit():
+    print('Deposit')
+    pass
+
+def money_withdrawal():
+    print('Withdraw')
+    pass
+
+def print_statement():
+    print('Print')
+    pass
+
+def transfer_money():
+    print('Transfer')
+    pass
+
+def account_closure():
+    print('Close')
+    pass
+            
+
+submenuOptions = {1: address_change,
+                  2: money_deposit,
+                  3: money_withdrawal,
+                  4: print_statement,
+                  5: transfer_money,
+                  6: account_closure,
+                  7: 'customer_logout'}
 
 def subMenu():
     print("\t1. Address Change")
@@ -74,6 +108,11 @@ def subMenu():
     print("\t5. Transfer Money")
     print("\t6. Account Closure")
     print("\t7. Customer Logout")
+    opt = selectOption(submenuOptions)
+    if opt == 'customer_logout':
+        return
+    else:
+        opt()
         
 
 def SignUp():
@@ -81,7 +120,7 @@ def SignUp():
     print("Choose your account type")
     print("1. Saving")
     print("2. Current")
-    accountType = selectOption(1)  #To call for check in accountType dictionary
+    accType = selectOption(accountType)  #To call for check in accountType dictionary
     fname = validityCheck(0)
     lname = validityCheck(1)
     address = input("Enter your address, Line 1: ")
@@ -89,7 +128,7 @@ def SignUp():
     city = validityCheck(inp=2)
     state = validityCheck(inp=3)
     pincode = validatePin()
-    c = Customer(accountType,fname,lname,address,city,state,pincode)
+    c = Customer(accType,fname,lname,address,city,state,pincode)
     c.enterPassword()
     success = c.registerUser()
     if success == 1:
@@ -138,13 +177,10 @@ options = {1 : SignUp,
            4: 'Quit',
 }
 
-def selectOption(inp=0):
+def selectOption(opt):
     while True:
         choice  = int(input("Choice?"))
-        if inp == 0:
-            a = options.get(choice,'Invalid Choice')
-        elif inp == 1:
-            a = accountType.get(choice,'Invalid Choice')
+        a = opt.get(choice,'Invalid Choice')
         if a == 'Invalid Choice':
             print(a)
             continue
@@ -157,7 +193,7 @@ while quit != 4:
     print('3. Admin Sign In')
     print('4. Quit')
     
-    opt = selectOption()
+    opt = selectOption(options)
     if opt == 'Quit':
         print('*'*5 + 'Thanks for coming!' + '*'*5)
         quit = 4
