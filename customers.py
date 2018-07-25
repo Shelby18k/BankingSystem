@@ -54,6 +54,26 @@ class Customer:
             return 1
         except:
             print("An error occurred while registering, please contact admin")
+
+
+
+
+
+
+class RegisteredCustomer(Customer):
+    def __init__(self,accountType,fname, lname, address, city, state, pincode,accountNumber,password):
+        super(RegisteredCustomer,self).__init__(accountType, fname, lname, address, city, state, pincode)
+        self.accountNumber = accountNumber
+        self.password = password
+    
+    def address_change(self):
+        address = input("Enter your new address, Line 1: ")
+        address += " " + input("Line 2: ")
+        stmt = "UPDATE customers set address = :1 where customerid = :2 and password = :3"
+        cur.execute(stmt,{'1':address,'2':self.accountNumber,'3':self.password})
+        con.commit()
+        print("Address Changed Successfully\n")
+        
         
     
     

@@ -1,5 +1,6 @@
 import re
 from customers import Customer
+from customers import RegisteredCustomer
 from BankingSystem.customers import cur
 from BankingSystem.customers import con
 
@@ -66,13 +67,30 @@ def validityCheck(inp=0):
         else: 
             print('*'*6+'Invalid input'+'*'*6)
             
-            
-def address_change():
-    print('Address')
-    pass
 
-def money_deposit():
-    print('Deposit')
+def create_customer(id,pwd):
+    stmt = "SELECT accounttype,fname,lname,address,city,state,pincode FROM customers where customerid= :1 and password = :2"
+    try:
+        cur.execute(stmt,{'1':id,'2':pwd})
+        res = cur.fetchall()
+        accType = str(res[0][0])
+        fname = str(res[0][1])
+        lname = str(res[0][2])
+        address = str(res[0][3])
+        city = str(res[0][4])
+        state = str(res[0][5])
+        pin = int(res[0][6])
+        c = RegisteredCustomer(accType,fname,lname,address,city,state,pin,id,pwd)
+        return c
+    except:
+        print("An error occurred")
+        return
+            
+            
+def address_change(customer):
+    customer.address_change()
+
+def money_deposit(customer):
     pass
 
 def money_withdrawal():
@@ -100,19 +118,20 @@ submenuOptions = {1: address_change,
                   6: account_closure,
                   7: 'customer_logout'}
 
-def subMenu():
-    print("\t1. Address Change")
-    print("\t2. Money Deposit")
-    print("\t3. Money Withdrawal")
-    print("\t4. Print Statement")
-    print("\t5. Transfer Money")
-    print("\t6. Account Closure")
-    print("\t7. Customer Logout")
-    opt = selectOption(submenuOptions)
-    if opt == 'customer_logout':
-        return
-    else:
-        opt()
+def subMenu(customer):
+    while True:
+        print("\t1. Address Change")
+        print("\t2. Money Deposit")
+        print("\t3. Money Withdrawal")
+        print("\t4. Print Statement")
+        print("\t5. Transfer Money")
+        print("\t6. Account Closure")
+        print("\t7. Customer Logout")
+        opt = selectOption(submenuOptions)
+        if opt == 'customer_logout':
+            return
+        else:
+            opt(customer)
         
 
 def SignUp():
@@ -133,7 +152,6 @@ def SignUp():
     success = c.registerUser()
     if success == 1:
         print("*"*6 + "You are successfully registered with our bank, you must login now..!\n")
-    
 
 
 def SignIn():
@@ -151,7 +169,8 @@ def SignIn():
                 print("Your account has been blocked, contact admin")
                 break
             elif status == 1:
-                subMenu()
+                c = create_customer(customerid,password)
+                subMenu(c)
                 break
         if totalAttempts == 2:
             result = checkUserId(customerid)
@@ -192,7 +211,7 @@ while quit != 4:
     print('2. Sign In (Existing Customer)')
     print('3. Admin Sign In')
     print('4. Quit')
-    
+    c = None
     opt = selectOption(options)
     if opt == 'Quit':
         print('*'*5 + 'Thanks for coming!' + '*'*5)
