@@ -28,6 +28,9 @@ class Customer:
         file_int = int(file_str)
         file_int += 1
         self.accountNumber = self.accountType[0] + self.fname[0] + str(self.pincode) + self.lname[0] + str(file_int)
+        
+        with open("C:/Users/TushaR/eclipse-workspace/BankingSystem/src/BankingSystem/id.txt","w") as f:
+            f.write(str(file_int))
         return self.accountNumber
     
     def enterPassword(self):

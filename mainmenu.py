@@ -1,5 +1,7 @@
 import re
 from customers import Customer
+from BankingSystem.customers import cur
+from BankingSystem.customers import con
 accountType = {1: 'Saving',
                2: 'Current'}
 
@@ -19,6 +21,35 @@ def validatePin():
         except:
             print('*'*6 + 'Invalid Input' + '*'*6)
 
+def check_user_identity(id,pwd):
+    stmt = "select case when exists(select 1 from customers where customerid= :1 and password= :2) then 'Y' else 'N' end as rec_exists from dual"
+    cur.execute(stmt,{'1':id,'2':pwd})
+    result = cur.fetchall()
+    result = str(result[0][0])
+    if result == 'N':
+        return 0;
+    elif result == 'Y':
+        return 1;
+
+def checkUserId(id):
+    stmt = "select case when exists(select 1 from customers where customerid= :1) then 'Y' else 'N' end as rec_exists from dual"
+    cur.execute(stmt,{'1':id})
+    result = cur.fetchall()
+    result = str(result[0][0])
+    if result == 'N':
+        return 0;
+    elif result == 'Y':
+        return 1;
+    
+def check_account_status(id,pwd):
+    stmt = "select blocked from customers where customerid=:1 and password = :2"
+    cur.execute(stmt,{'1':id,'2':pwd})
+    res = cur.fetchall()
+    if str(res[0][0]) == 'yes':
+        return 0
+    elif str(res[0][0]) == 'no':
+        return 1
+    
 def validityCheck(inp=0):
     while True:
         if inp == 0:
@@ -33,6 +64,16 @@ def validityCheck(inp=0):
             return fname
         else: 
             print('*'*6+'Invalid input'+'*'*6)
+            
+
+def subMenu():
+    print("\t1. Address Change")
+    print("\t2. Money Deposit")
+    print("\t3. Money Withdrawal")
+    print("\t4. Print Statement")
+    print("\t5. Transfer Money")
+    print("\t6. Account Closure")
+    print("\t7. Customer Logout")
         
 
 def SignUp():
@@ -52,12 +93,41 @@ def SignUp():
     c.enterPassword()
     success = c.registerUser()
     if success == 1:
-        print("*"*6 + "You are successfully registered with our bank\n")
+        print("*"*6 + "You are successfully registered with our bank, you must login now..!\n")
     
 
 
 def SignIn():
-    pass
+    userid = -1
+    totalAttempts = 0
+    while totalAttempts < 3:
+        customerid = input("Enter your customer id: ")
+        password = input("Enter your password: ")
+        userid = check_user_identity(customerid,password)
+        if userid == 0:
+            print("*"*6 + "Invalid UserID or password\n" + "*"*6)
+        elif userid == 1:
+            status = check_account_status(customerid,password)
+            if status == 0:
+                print("Your account has been blocked, contact admin")
+                break
+            elif status == 1:
+                subMenu()
+                break
+        if totalAttempts == 2:
+            result = checkUserId(customerid)
+            if result == 1:
+                stmt = 'UPDATE customers SET blocked = :1 where customerid = :2'
+                try:
+                    cur.execute(stmt,{'1':'yes','2':customerid})
+                    con.commit()
+                    print("You have exceeded the number of login attempts")
+                    print("*"*6 + " Account has been blocked " + "*"*6)
+                    print("Contact Admin: ")
+                except:
+                    print("Some error occurred")   
+        totalAttempts += 1
+    
 
 def AdminSignIn():
     pass
