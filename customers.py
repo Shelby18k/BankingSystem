@@ -5,13 +5,14 @@ Created on 24-Jul-2018
 '''
 import os
 import cx_Oracle
-
+from datetime import date,datetime,timedelta
 os.chdir("C:\instantclient-basic-nt-12.2.0.1.0\instantclient_12_2")
 
 con = cx_Oracle.connect('system/tushar@localhost')
 cur  = con.cursor()
 
 class Customer:
+    id = 2
     def __init__(self,accountType,fname,lname,address,city,state,pincode):
         self.accountType = accountType
         self.fname = fname
@@ -25,12 +26,8 @@ class Customer:
         with open("C:/Users/TushaR/eclipse-workspace/BankingSystem/src/BankingSystem/id.txt") as f:
             file_str = f.read()
             
-        file_int = int(file_str)
-        file_int += 1
-        self.accountNumber = self.accountType[0] + self.fname[0] + str(self.pincode) + self.lname[0] + str(file_int)
-        
-        with open("C:/Users/TushaR/eclipse-workspace/BankingSystem/src/BankingSystem/id.txt","w") as f:
-            f.write(str(file_int))
+        Customer.id = Customer.id + 1
+        self.accountNumber = self.accountType[0] + self.fname[0] + str(self.pincode) + self.lname[0] + str(Customer.id)
         return self.accountNumber
     
     def enterPassword(self):
@@ -75,7 +72,48 @@ class RegisteredCustomer(Customer):
         con.commit()
         print("Address Changed Successfully\n")
         
+    def money_deposit(self):
+        while True:
+            amount = float(input("Enter deposit amount: "))
+            if amount < 0:
+                print('*'*6+'Please enter a positive value')
+            else:
+                break
+        stmt = "UPDATE transactions SET balance = balance + :1 where accountid = :2"
+        try:
+            cur.execute(stmt,{'1':amount,'2':self.accountNumber})
+            con.commit()
+            print('*'*6+"Your balance has been deposited")
+            return amount
+        except:
+            print("Error Depositing")
+        
         
     
-    
+   
+# rdate = date.today() + timedelta(days=30)
+# rdate = rdate.strftime("%d-%m-%Y")
+# print(str(rdate))
 
+# stmt = "SELECT transcount,dt,renewaldate from transactioncount where accountid = :1"
+# cur.execute(stmt,{'1':'ST248179K1'})
+# res = cur.fetchall()
+# print(res)
+# count = int(res[0][0])
+# d1 = res[0][1]
+# d2 = res[0][2]
+# print(d1)
+# print(d2)
+# print(type(d2))
+# d1 = datetime.strptime(str(d1)[0:10],'%Y-%m-%d')
+# d2 = datetime.strptime(str(d1)[0:10],'%Y-%m-%d')
+# print(d2)
+# print(d1)
+# print(type(d2))
+# if d1== d2:
+#     print("Equeal")
+# if d1 > d2:
+#     print("Hello")
+# if d2 > d1:
+#     print("Hello1") 
+# print(d2-d1)

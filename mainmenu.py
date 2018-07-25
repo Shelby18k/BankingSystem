@@ -3,6 +3,7 @@ from customers import Customer
 from customers import RegisteredCustomer
 from BankingSystem.customers import cur
 from BankingSystem.customers import con
+from datetime import date,datetime,timedelta
 
 accountType = {1: 'Saving',
                2: 'Current'}
@@ -72,7 +73,7 @@ def enterAmount():
     while True:
         try:
             amt = float(input("Enter amount: "))
-            if amt >= 5000.0:
+            if amt > 0 and amt >= 5000.0:
                 return amt
             else:
                 raise ValueError()   
@@ -103,7 +104,34 @@ def address_change(customer):
     customer.address_change()
 
 def money_deposit(customer):
-    pass
+    if customer.accountType == accountType.get(1):
+        stmt = "SELECT transcount,dt,renewaldate from transactioncount where accountid = :1"
+        cur.execute(stmt,{'1':customer.accountNumber})
+        res = cur.fetchall()
+        count = int(res[0][0])
+        d1 = res[0][1]
+        d2 = res[0][1]
+        d1 = datetime.strptime(str(d1)[0:10],'%Y-%m-%d')
+        d2 = datetime.strptime(str(d1)[0:10],'%Y-%m-%d')
+        today = date.today()
+        rdate = date.today() + timedelta(days=30)
+        rdate = rdate.strftime("%d-%m-%Y")
+        if today > d2:
+            today = today.strftime("%d-%m-%Y")
+            stmt = """UPDATE transactioncount set transcount = :1,dt = to_date(:2,'dd-mm-yyyy'),
+                renewaldate = to_date(:3,'dd-mm-yyyy') where accountid = :1"""
+            cur.execute(stmt,{'1':customer.accountNumber})
+            con.commit()
+        if count > 10:
+            print('*'*6 + "Sorry you have exhausted this month transaction limit")
+            print("You cannot deposit more, this month return next month")
+            return
+        
+        amt = customer.money_deposit()
+        stmt = "UPDATE transactioncount set transcount = transcount+1 where accountid = :1"
+        cur.execute(stmt,{'1':customer.accountNumber})
+        con.commit()
+        print("You have deposited: " + str(amt))
     
 
 def money_withdrawal():
@@ -164,8 +192,12 @@ def SignUp():
     c.enterPassword()
     acctNo = c.registerUser()
     if accType == 'Saving':
-        stmt = 'INSERT INTO transactioncount(accountid) values(:1)'
-        cur.execute(stmt,{'1':acctNo})
+        rdate = date.today() + timedelta(days=30)
+        rdate = rdate.strftime("%d-%m-%Y")
+        stmt = "INSERT INTO transactioncount(accountid,renewaldate) values(:1,to_date(:2,'dd-mm-yyyy'))"
+        cur.execute(stmt,{'1':acctNo,'2':rdate})
+        stmt = "INSERT INTO transactions(accountid,transtype) values(:1,:2)"
+        cur.execute(stmt,{'1':acctNo,'2':'Credited'})
         con.commit()
     elif accType == 'Current':
         print("You need to deposit min. amount of Rs. 5000")
