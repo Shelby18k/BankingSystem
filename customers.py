@@ -12,7 +12,6 @@ con = cx_Oracle.connect('system/tushar@localhost')
 cur  = con.cursor()
 
 class Customer:
-    id = 2
     def __init__(self,accountType,fname,lname,address,city,state,pincode):
         self.accountType = accountType
         self.fname = fname
@@ -26,8 +25,11 @@ class Customer:
         with open("C:/Users/TushaR/eclipse-workspace/BankingSystem/src/BankingSystem/id.txt") as f:
             file_str = f.read()
             
-        Customer.id = Customer.id + 1
-        self.accountNumber = self.accountType[0] + self.fname[0] + str(self.pincode) + self.lname[0] + str(Customer.id)
+        file_int = int(file_str)
+        file_int += 1
+        self.accountNumber = self.accountType[0] + self.fname[0] + str(self.pincode) + self.lname[0] + str(file_int)
+        with open("C:/Users/TushaR/eclipse-workspace/Python Course/src/Pydev/hello.txt",'w') as f:
+            f.write(str(file_int))
         return self.accountNumber
     
     def enterPassword(self):
@@ -79,11 +81,15 @@ class RegisteredCustomer(Customer):
                 print('*'*6+'Please enter a positive value')
             else:
                 break
-        stmt = "UPDATE transactions SET balance = balance + :1 where accountid = :2"
+        today = date.today()
+        today = datetime.strptime(str(today)[0:10],'%Y-%m-%d')
+        stmt = "UPDATE transactions SET balance = balance + :1,dt = to_date(:3,'dd-mm-yyyy') where accountid = :2"
         try:
-            cur.execute(stmt,{'1':amount,'2':self.accountNumber})
+            cur.execute(stmt,{'1':amount,'2':self.accountNumber,'3':today})
             con.commit()
             print('*'*6+"Your balance has been deposited")
+            stmt = "INSERT INTO statementdetails(accountid,balance,dt,transtype) values(:1,:2,to_date(:3,'dd-mm-yyyy'),:4)"
+            cur.execute(stmt,{'1':self.accountNumber,'2':amount,'3':today,'4':'Credited'})
             return amount
         except:
             print("Error Depositing")

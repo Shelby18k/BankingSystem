@@ -110,19 +110,23 @@ def money_deposit(customer):
         res = cur.fetchall()
         count = int(res[0][0])
         d1 = res[0][1]
-        d2 = res[0][1]
+        d2 = res[0][2]
         d1 = datetime.strptime(str(d1)[0:10],'%Y-%m-%d')
-        d2 = datetime.strptime(str(d1)[0:10],'%Y-%m-%d')
+        d2 = datetime.strptime(str(d2)[0:10],'%Y-%m-%d')
         today = date.today()
+        today = datetime.strptime(str(today)[0:10],'%Y-%m-%d')
         rdate = date.today() + timedelta(days=30)
         rdate = rdate.strftime("%d-%m-%Y")
         if today > d2:
-            today = today.strftime("%d-%m-%Y")
             stmt = """UPDATE transactioncount set transcount = :1,dt = to_date(:2,'dd-mm-yyyy'),
-                renewaldate = to_date(:3,'dd-mm-yyyy') where accountid = :1"""
-            cur.execute(stmt,{'1':customer.accountNumber})
+                renewaldate = to_date(:3,'dd-mm-yyyy') where accountid = :4"""
+            cur.execute(stmt,{'4':customer.accountNumber,'2':today,'3':rdate,'1':0})
             con.commit()
-        if count > 10:
+            stmt = "SELECT transcount from transactioncount where accountid= :1"
+            cur.execute(stmt,{'1':customer.accountNumber})
+            res = cur.fetchall()
+            count = int(res[0][0])
+        if count > 9:
             print('*'*6 + "Sorry you have exhausted this month transaction limit")
             print("You cannot deposit more, this month return next month")
             return
@@ -196,14 +200,16 @@ def SignUp():
         rdate = rdate.strftime("%d-%m-%Y")
         stmt = "INSERT INTO transactioncount(accountid,renewaldate) values(:1,to_date(:2,'dd-mm-yyyy'))"
         cur.execute(stmt,{'1':acctNo,'2':rdate})
-        stmt = "INSERT INTO transactions(accountid,transtype) values(:1,:2)"
-        cur.execute(stmt,{'1':acctNo,'2':'Credited'})
+        stamt = "INSERT INTO transactions(accountid) values(:1)"
+        cur.execute(stamt,{'1':acctNo})
         con.commit()
     elif accType == 'Current':
         print("You need to deposit min. amount of Rs. 5000")
         amt = enterAmount()
-        stmt = "INSERT INTO transactions(accountid,balance,transtype) values(:1,:2,:3)"
-        cur.execute(stmt,{'1':acctNo,'2':amt,'3':'Credited'})
+        stmt = "INSERT INTO transactions(accountid,balance) values(:1,:2)"
+        cur.execute(stmt,{'1':acctNo,'2':amt})
+        stamt = "INSERT INTO statementdetails(accountid,balance,transtype) values(:1,:2,:3)"
+        cur.execute(stamt,{'1':acctNo,'2':amt,'3':'Credited'})
         con.commit()
         
     if acctNo:
