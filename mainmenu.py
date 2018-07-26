@@ -24,9 +24,13 @@ def validatePin():
         except:
             print('*'*6 + 'Invalid Input' + '*'*6)
 
-def check_user_identity(id,pwd):
-    stmt = "select case when exists(select 1 from customers where customerid= :1 and password= :2) then 'Y' else 'N' end as rec_exists from dual"
-    cur.execute(stmt,{'1':id,'2':pwd})
+def check_user_identity(id,pwd,trigger):
+    if trigger == 0:
+        stmt = "select case when exists(select 1 from customers where customerid= :1 and password= :2) then 'Y' else 'N' end as rec_exists from dual"
+        cur.execute(stmt,{'1':id,'2':pwd})
+    elif trigger == 1:
+        stmt = "select case when exists(select 1 from customers where customerid= :1) then 'Y' else 'N' end as rec_exists from dual"
+        cur.execute(stmt,{'1':id})
     result = cur.fetchall()
     result = str(result[0][0])
     if result == 'N':
@@ -102,53 +106,110 @@ def create_customer(id,pwd):
             
 def address_change(customer):
     customer.address_change()
+    
 
-def money_deposit(customer):
-    if customer.accountType == accountType.get(1):
-        stmt = "SELECT transcount,dt,renewaldate from transactioncount where accountid = :1"
+def check_transaction_count(customer):
+    stmt = "SELECT transcount,dt,renewaldate from transactioncount where accountid = :1"
+    cur.execute(stmt,{'1':customer.accountNumber})
+    res = cur.fetchall()
+    count = int(res[0][0])
+    d1 = res[0][1]
+    d2 = res[0][2]
+    d1 = datetime.strptime(str(d1)[0:10],'%Y-%m-%d')
+    d2 = datetime.strptime(str(d2)[0:10],'%Y-%m-%d')
+    today = date.today()
+    today = datetime.strptime(str(today)[0:10],'%Y-%m-%d')
+    rdate = date.today() + timedelta(days=30)
+    rdate = rdate.strftime("%d-%m-%Y")
+    
+    if today > d2:
+        stmt = """UPDATE transactioncount set transcount = :1,dt = to_date(:2,'dd-mm-yyyy'),
+                renewaldate = to_date(:3,'dd-mm-yyyy') where accountid = :4"""
+        cur.execute(stmt,{'4':customer.accountNumber,'2':today,'3':rdate,'1':0})
+        con.commit()
+        stmt = "SELECT transcount from transactioncount where accountid= :1"
         cur.execute(stmt,{'1':customer.accountNumber})
         res = cur.fetchall()
         count = int(res[0][0])
-        d1 = res[0][1]
-        d2 = res[0][2]
-        d1 = datetime.strptime(str(d1)[0:10],'%Y-%m-%d')
-        d2 = datetime.strptime(str(d2)[0:10],'%Y-%m-%d')
-        today = date.today()
-        today = datetime.strptime(str(today)[0:10],'%Y-%m-%d')
-        rdate = date.today() + timedelta(days=30)
-        rdate = rdate.strftime("%d-%m-%Y")
-        if today > d2:
-            stmt = """UPDATE transactioncount set transcount = :1,dt = to_date(:2,'dd-mm-yyyy'),
-                renewaldate = to_date(:3,'dd-mm-yyyy') where accountid = :4"""
-            cur.execute(stmt,{'4':customer.accountNumber,'2':today,'3':rdate,'1':0})
-            con.commit()
-            stmt = "SELECT transcount from transactioncount where accountid= :1"
-            cur.execute(stmt,{'1':customer.accountNumber})
-            res = cur.fetchall()
-            count = int(res[0][0])
-        if count > 9:
-            print('*'*6 + "Sorry you have exhausted this month transaction limit")
-            print("You cannot deposit more, this month return next month")
+    if count > 9:
+        print('*'*6 + "Sorry you have exhausted this month transaction limit")
+        print("\tYou cannot deposit more, this month return next month")
+        return 0
+
+def money_deposit(customer):
+    if customer.accountType == accountType.get(1):
+        transaction_count = check_transaction_count(customer)
+        if transaction_count == 0:
             return
-        
         amt = customer.money_deposit()
-        stmt = "UPDATE transactioncount set transcount = transcount+1 where accountid = :1"
-        cur.execute(stmt,{'1':customer.accountNumber})
-        con.commit()
-        print("You have deposited: " + str(amt))
+        if amt:
+            stmt = "UPDATE transactioncount set transcount = transcount+1 where accountid = :1"
+            cur.execute(stmt,{'1':customer.accountNumber})
+            con.commit()
+            print("You have deposited: " + str(amt))
+    elif customer.accountType == accountType.get(2):
+        amt = customer.money_deposit()
+        if amt:
+            stmt = "UPDATE transactioncount set transcount = transcount+1 where accountid = :1"
+            cur.execute(stmt,{'1':customer.accountNumber})
+            con.commit()
+            print("You have deposited: " + str(amt))
     
 
-def money_withdrawal():
-    print('Withdraw')
-    pass
+def money_withdrawal(customer):
+    transaction_count = check_transaction_count(customer)
+    if transaction_count == 0:
+        return
+    amount = customer.enter_amount()
+    stmt = "SELECT balance from transactions where accountid = :1"
+    cur.execute(stmt,{'1':customer.accountNumber})
+    res = cur.fetchall()
+    a = float(res[0][0])
+    if a >= amount:
+        withdrawalAmount = a - 5000
+        if customer.accountType == accountType.get(2) and withdrawalAmount >= amount:
+            amt = customer.money_withdrawal(amount)
+            if amt:
+                print("Successfully Withdrawal: " + str(amt))
+        else:
+            print('*'*6 + "No sufficient funds in your account, please deposit first\n")
+            return 
+        if customer.accountType == accountType.get(1):
+            amt = customer.money_withdrawal(amount)
+            if amt:
+                print("Successfully Withdrawal: " + str(amt))
+        if customer.accountType == accountType.get(1):
+            stmt = "UPDATE transactioncount set transcount = transcount+1 where accountid = :1" 
+            cur.execute(stmt,{'1':customer.accountNumber})
+            con.commit()
+    else:
+        print('*'*6 + "No sufficient funds in your account, please deposit first\n")
+        return
+    
 
 def print_statement():
     print('Print')
     pass
 
-def transfer_money():
-    print('Transfer')
-    pass
+def transfer_money(customer):
+    transaction_count = check_transaction_count(customer)
+    if transaction_count == 0:
+        return
+    amount = customer.enter_amount()
+    custAcct = input("Enter account no. of the person, you need to transfer: \n")
+    exist = check_user_identity(custAcct,'HellNo',1)
+    if exist == 0:
+        print('*'*6 + "Such user doesn't exist, Please try again!")
+        return
+    elif exist == 1:
+        checker = customer.check_available_balance(amount,custAcct)
+        if checker == 1:
+            print("\tMoney Transferred Successfully.")
+        else:
+            print("\tPlease Check your balance!")
+    else:
+        return
+        
 
 def account_closure():
     print('Close')
@@ -207,11 +268,17 @@ def SignUp():
         print("You need to deposit min. amount of Rs. 5000")
         amt = enterAmount()
         stmt = "INSERT INTO transactions(accountid,balance) values(:1,:2)"
-        cur.execute(stmt,{'1':acctNo,'2':amt})
-        stamt = "INSERT INTO statementdetails(accountid,balance,transtype) values(:1,:2,:3)"
-        cur.execute(stamt,{'1':acctNo,'2':amt,'3':'Credited'})
-        con.commit()
+        with open("C:/Users/TushaR/eclipse-workspace/BankingSystem/src/BankingSystem/transactionid.txt") as f:
+            file_str = f.read()
+        file_int = int(file_str)
         
+        cur.execute(stmt,{'1':acctNo,'2':amt})
+        stamt = "INSERT INTO statementdetails(id,accountid,balance,transtype) values(:1,:2,:3,:4)"
+        cur.execute(stamt,{'1':file_int,'2':acctNo,'3':amt,'4':'Credited'})
+        con.commit()
+        file_int += 1
+        with open("C:/Users/TushaR/eclipse-workspace/BankingSystem/src/BankingSystem/transactionid.txt",'w') as f:
+            f.write(str(file_int))
     if acctNo:
         print("*"*6 + "You are successfully registered with our bank, you must login now..!\n")
     else:
@@ -224,7 +291,7 @@ def SignIn():
     while totalAttempts < 3:
         customerid = input("Enter your customer id: ")
         password = input("Enter your password: ")
-        userid = check_user_identity(customerid,password)
+        userid = check_user_identity(customerid,password,0)
         if userid == 0:
             print("*"*6 + "Invalid UserID or password\n" + "*"*6)
         elif userid == 1:

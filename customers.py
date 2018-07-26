@@ -6,6 +6,7 @@ Created on 24-Jul-2018
 import os
 import cx_Oracle
 from datetime import date,datetime,timedelta
+from _ast import stmt
 os.chdir("C:\instantclient-basic-nt-12.2.0.1.0\instantclient_12_2")
 
 con = cx_Oracle.connect('system/tushar@localhost')
@@ -28,7 +29,8 @@ class Customer:
         file_int = int(file_str)
         file_int += 1
         self.accountNumber = self.accountType[0] + self.fname[0] + str(self.pincode) + self.lname[0] + str(file_int)
-        with open("C:/Users/TushaR/eclipse-workspace/Python Course/src/Pydev/hello.txt",'w') as f:
+        
+        with open("C:/Users/TushaR/eclipse-workspace/BankingSystem/src/BankingSystem/id.txt",'w') as f:
             f.write(str(file_int))
         return self.accountNumber
     
@@ -74,29 +76,99 @@ class RegisteredCustomer(Customer):
         con.commit()
         print("Address Changed Successfully\n")
         
-    def money_deposit(self):
+    def enter_amount(self):
         while True:
-            amount = float(input("Enter deposit amount: "))
+            amount = float(input("Enter amount: "))
             if amount < 0:
                 print('*'*6+'Please enter a positive value')
             else:
                 break
+        return amount
+    
+    def insert_in_statement(self,amount,today,trans):
+        stmt = "INSERT INTO statementdetails(id,accountid,balance,dt,transtype) values(:1,:2,:3,to_date(:4,'dd-mm-yyyy'),:5)"
+        
+        with open("C:/Users/TushaR/eclipse-workspace/BankingSystem/src/BankingSystem/transactionid.txt") as f:
+            file_str = f.read()
+        file_int = int(file_str)
+        file_int += 1
+        cur.execute(stmt,{'1':file_int,'2':self.accountNumber,'3':amount,'4':today,'5':trans})
+        
+        with open("C:/Users/TushaR/eclipse-workspace/BankingSystem/src/BankingSystem/transactionid.txt",'w') as f:
+            f.write(str(file_int))
+        
+        
+    def money_deposit(self):
+        amount = self.enter_amount()
         today = date.today()
         today = datetime.strptime(str(today)[0:10],'%Y-%m-%d')
         stmt = "UPDATE transactions SET balance = balance + :1,dt = to_date(:3,'dd-mm-yyyy') where accountid = :2"
-        try:
-            cur.execute(stmt,{'1':amount,'2':self.accountNumber,'3':today})
-            con.commit()
-            print('*'*6+"Your balance has been deposited")
-            stmt = "INSERT INTO statementdetails(accountid,balance,dt,transtype) values(:1,:2,to_date(:3,'dd-mm-yyyy'),:4)"
-            cur.execute(stmt,{'1':self.accountNumber,'2':amount,'3':today,'4':'Credited'})
-            return amount
-        except:
-            print("Error Depositing")
         
-        
+        cur.execute(stmt,{'1':amount,'2':self.accountNumber,'3':today})
+        print('*'*6+"Your balance has been deposited")
+        self.insert_in_statement(amount,today,'Credited')
+        con.commit()
+        return amount
     
-   
+    def money_withdrawal(self,amt):
+        today = date.today()
+        today = datetime.strptime(str(today),'%Y-%m-%d')
+        print("Hello")
+        stmt = "UPDATE transactions SET balance = balance - :1,dt = to_date(:3,'dd-mm-yyyy') where accountid = :2"
+        try:
+            cur.execute(stmt,{'1':amt,'2':self.accountNumber,'3':today})
+            print('*'*6+"Your balance has been withdrawn")
+            self.insert_in_statement(amt,today,'Debited')
+            con.commit()
+            return amt
+        except:
+            print("Error Withdrawing")
+    
+    
+    def deduct_balance(self,amount):
+        stmt = "UPDATE transactions SET balance = balance - :1 where accountid = :2"
+        cur.execute(stmt,{'1':amount,'2':self.accountNumber})
+        
+    def add_balance(self,amount,to):
+        stmt = "UPDATE transactions SET balance = balance + :1 where accountid = :2"
+        cur.execute(stmt,{'1':amount,'2':to})
+        
+    def transferMoney(self,amount,to):
+        self.deduct_balance(amount)
+        self.add_balance(amount,to)
+        stmt = "INSERT INTO transfermoney(accountid,toaccount,balance) values(:1,:2,:3)"
+        cur.execute(stmt,{'1':self.accountNumber,'2':to,'3':amount})
+        con.commit()
+    
+    def  check_available_balance(self,amount,to):
+        stmt = "SELECT balance from transactions where accountid = :1"
+        cur.execute(stmt,{'1':self.accountNumber})
+        res = cur.fetchall()
+        a = float(res[0][0])
+        withdrawalAmount = a - 5000
+        if self.accountType == 'Saving' and a >= amount:
+            self.transferMoney(amount, to)
+            stmt = "UPDATE transactioncount set transcount = transcount+1 where accountid = :1"
+            cur.execute(stmt,{'1':self.accountNumber})
+            con.commit()
+            return 1
+        elif self.accountType == 'Current' and withdrawalAmount >= amount:
+            self.transferMoney(amount, to)
+            return 1
+        else:
+            print('*'*8+"Balance is not sufficient")
+            return 0
+        
+            
+           
+        
+        
+        
+# con.rollback() 
+# con.commit()  
+# stmt = "drop table transactions"
+# cur.execute(stmt)
+# con.commit()
 # rdate = date.today() + timedelta(days=30)
 # rdate = rdate.strftime("%d-%m-%Y")
 # print(str(rdate))
