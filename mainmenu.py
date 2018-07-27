@@ -13,6 +13,17 @@ accountType = {1: 'Saving',
 accountConfirm = {1:'Yes',
                 2: 'No'}
 
+# Function to choose Option
+def selectOption(opt):
+    while True:
+        choice  = int(input("Choice?"))
+        a = opt.get(choice,'Invalid Choice')
+        if a == 'Invalid Choice':
+            print(a)
+            continue
+        else:
+            return a
+
 print("\tWelcome to our bank of trust")
 print('\t\tMain Menu')
 
@@ -64,7 +75,8 @@ def check_account_status(id,pwd):
         return 0
     elif str(res[0][0]) == 'no':
         return 1
-    
+
+# Function to validate user inputs 
 def validityCheck(inp=0):
     while True:
         if inp == 0:
@@ -124,12 +136,11 @@ def create_customer(id,pwd):
         return
 
 
-   
 
 def check_closed_accounts(a):
-    a.closed_accounts()
+    a.closed_accounts() # Function to close user account
 
-
+# Function to display Admin submenu
 def adminSubMenu(admin):
     while True:
         print("Welcome Admin!")
@@ -144,11 +155,12 @@ def adminSubMenu(admin):
 adminOptions = {1:check_closed_accounts,
                 2: 'Logout'
     }             
-            
-def address_change(customer):
-    customer.address_change()
-    
 
+# Function to change address of customer            
+def address_change(customer):
+    customer.address_change() # Calling address_change function of customer object
+    
+# Function to heck transaction count of the 'Saving' account user
 def check_transaction_count(customer):
     if customer.accountType == accountType.get(1):
         stmt = "SELECT transcount,dt,renewaldate from transactioncount where accountid = :1"
@@ -181,22 +193,27 @@ def check_transaction_count(customer):
 
 def money_deposit(customer):
     if customer.accountType == accountType.get(1):
+        # If account type is saving then checking whether the user has exhausted this months's transaction count
         transaction_count = check_transaction_count(customer)
         if transaction_count == 0:
             return
-        amt = customer.money_deposit()
+        amt = customer.money_deposit() # Entering amount
+        # Updating the transaction count
         if amt:
             stmt = "UPDATE transactioncount set transcount = transcount+1 where accountid = :1"
             cur.execute(stmt,{'1':customer.accountNumber})
             con.commit()
             print("You have deposited: " + str(amt))
+    # If accountype is 'Current' then allowing directly user to deposit
     elif customer.accountType == accountType.get(2):
         amt = customer.money_deposit()
         if amt:
             print("You have deposited: " + str(amt))
     
 
+# Function to withdraw from user's account 
 def money_withdrawal(customer):
+    # If account type is saving then checking whether the user has exhausted this months's transaction count
     if customer.accountType == accountType.get(1):
         transaction_count = check_transaction_count(customer)
         if transaction_count == 0:
@@ -208,17 +225,20 @@ def money_withdrawal(customer):
     a = float(res[0][0])
     print(a)
     print(amount)
+    # Checking if balance is sufficient or not to withdraw
     if a >= amount:
-        withdrawalAmount = a - 5000
+        withdrawalAmount = a - 5000 # For current account holder as user needs to maintain min. 5000
+        # For 'Saving' account type
         if customer.accountType == accountType.get(1):
             amt = customer.money_withdrawal(amount)
             if amt:
                 print("Successfully Withdrawal: " + str(amt))
+        # Updating transaction count
         if customer.accountType == accountType.get(1):
             stmt = "UPDATE transactioncount set transcount = transcount+1 where accountid = :1" 
             cur.execute(stmt,{'1':customer.accountNumber})
             con.commit()
-        
+        # Money withdrawal for Current account type
         if customer.accountType == accountType.get(2) and withdrawalAmount >= amount:
             amt = customer.money_withdrawal(amount)
             if amt:
@@ -234,7 +254,7 @@ def money_withdrawal(customer):
         return
     
     
-    
+# Function to validate date enetered by user    
 def enter_date():
     while True:
         fromDate = input("Enter start date in dd-mm-yyyy")
@@ -247,6 +267,7 @@ def enter_date():
 def print_statement(customer):
     fromDate = enter_date()
     toDate = enter_date()
+    # Checking toDate is greater than fromDate
     if toDate > fromDate:
         stmt = 'select balance,dt,transtype from statementdetails where dt between :1 and :2 and accountid = :3'
         cur.execute(stmt,{'1':fromDate,'2':toDate,'3':customer.accountNumber})
@@ -258,6 +279,7 @@ def print_statement(customer):
             for r in res:
                 print("{b}\t\t{d}\t{t}".format(b=r[0],d=str(r[1])[0:10],t=r[2]))
         
+        # For printing statement for Transferred Money
         stmt= "select toaccount,balance,dt,transtype from transfermoney where dt between :1 and :2 and accountid = :3"
         cur.execute(stmt,{'1':fromDate,'2':toDate,'3':customer.accountNumber})
         res = cur.fetchall()
@@ -274,18 +296,19 @@ def print_statement(customer):
         print("*"*8 +"Dates aren't valid")
 
 def transfer_money(customer):
+    # If account type is saving then checking whether the user has exhausted this months's transaction count
     if customer.accountType == accountType.get(1):
         transaction_count = check_transaction_count(customer)
         if transaction_count == 0:
             return
     amount = customer.enter_amount()
     custAcct = input("Enter account no. of the person, you need to transfer: \n")
-    exist = check_user_identity(custAcct,'HellNo',1)
+    exist = check_user_identity(custAcct,'HellNo',1) # Function to check whether the eneterd accountid is registered with us or not
     if exist == 0:
         print('*'*6 + "Such user doesn't exist, Please try again!")
         return
     elif exist == 1:
-        checker = customer.check_available_balance(amount,custAcct)
+        checker = customer.check_available_balance(amount,custAcct) # Function to transfer money
         if checker == 1:
             print("\tMoney Transferred Successfully.")
         else:
@@ -293,7 +316,7 @@ def transfer_money(customer):
     else:
         return
         
-
+# Function to close user account
 def account_closure(customer):
     print('*'*10+"Are you sure to close your account?  ")
     print("1. Yes")
@@ -303,13 +326,14 @@ def account_closure(customer):
         print("\tOK")
         return
     else:
-        success = customer.account_close()
+        success = customer.account_close() # Function to close the account
         if success == 1:
             print('*'*9+"Your account has been closed..!")
             print('*'*6+"Thanks for being our customer!")
             return
             
 
+# Dictionary for calling functions according to user input
 submenuOptions = {1: address_change,
                   2: money_deposit,
                   3: money_withdrawal,
@@ -318,6 +342,7 @@ submenuOptions = {1: address_change,
                   6: account_closure,
                   7: 'customer_logout'}
 
+# Function to display sub menu to the signed in user
 def subMenu(customer):
     while True:
         print("\t1. Address Change")
@@ -336,6 +361,7 @@ def subMenu(customer):
 
 def SignUp():
     print('*'*6 + 'Welcome user' + '*'*6)
+    # Inputs from User
     print("Choose your account type")
     print("1. Saving")
     print("2. Current")
@@ -349,7 +375,9 @@ def SignUp():
     pincode = validatePin()
     c = Customer(accType,fname,lname,address,city,state,pincode)
     c.enterPassword()
+    # Registering user to create a customerid
     acctNo = c.registerUser()
+    # If account type is saving then a default entry is inserted into transactioncount and transactions table
     if accType == 'Saving':
         rdate = date.today() + timedelta(days=30)
         rdate = rdate.strftime("%d-%m-%Y")
@@ -358,6 +386,7 @@ def SignUp():
         stamt = "INSERT INTO transactions(accountid) values(:1)"
         cur.execute(stamt,{'1':acctNo})
         con.commit()
+    # If account type is saving then forcing user to deposit 5000
     elif accType == 'Current':
         print("You need to deposit min. amount of Rs. 5000")
         amt = enterAmount()
@@ -383,9 +412,10 @@ def SignUp():
 def SignIn():
     userid = -1
     totalAttempts = 0
+    # Loop for checking user attempts
     while totalAttempts < 3:
         customerid = input("Enter your customer id: ")
-        a = check_account_blocked(customerid)
+        a = check_account_blocked(customerid) # Function to check whether account has been blocked or not
         if a == 1:
             print('*'*10+"Your account has been close now!")
             return
@@ -400,9 +430,11 @@ def SignIn():
                     print("Your account has been blocked, contact admin")
                     break
                 elif status == 1:
+                    # If everything is fine creating object of RegisteredCustomer
                     c = create_customer(customerid,password)
                     subMenu(c)
                     break
+            # If user has exceeded attempts then blocking user account
             if totalAttempts == 2:
                 result = checkUserId(customerid)
                 if result == 1:
@@ -417,11 +449,11 @@ def SignIn():
                         print("Some error occurred")   
             totalAttempts += 1
     
-
+# Function to display the Admin Menu
 def AdminSignIn():
     adminid = input("Enter your admin id: ")
     password = input("Enter your password: ")
-    tri = check_user_identity(adminid,password,2)
+    tri = check_user_identity(adminid,password,2) # Function to validate admin credentials
     if tri == 0:
         print('*'*10+"Wrong Credentials..!")
         return
@@ -429,21 +461,14 @@ def AdminSignIn():
         a = Admin(adminid,password)
         adminSubMenu(a)
 
+# Dictionary for correct function call
 options = {1 : SignUp,
            2: SignIn,
            3: AdminSignIn,
            4: 'Quit',
 }
 
-def selectOption(opt):
-    while True:
-        choice  = int(input("Choice?"))
-        a = opt.get(choice,'Invalid Choice')
-        if a == 'Invalid Choice':
-            print(a)
-            continue
-        else:
-            return a
+
 quit = 0
 while quit != 4:
     print('1. Sign Up (New Customer)')
