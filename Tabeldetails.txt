@@ -1,0 +1,44 @@
+create table transactions(
+	accountid varchar2(40) not null primary key,
+	constraint fk_customers foreign key (accountid) references customers(customerid),
+	balance decimal(8,2) default 0.0,
+	dt date default sysdate not null	
+);
+
+create table transfermoney(
+	accountid varchar2(40) not null,
+	constraint fk_transfer foreign key (accountid) references customers(customerid),
+	toaccount varchar2(40) not null,
+	balance decimal(8,2),
+	dt date default sysdate not null,
+	transtype varchar2(15) default 'Transfer'
+);
+
+create table transactioncount(
+	accountid varchar2(40) not null primary key,
+	constraint fk_count foreign key (accountid) references customers(customerid),
+	transcount number(2) default 0,
+	dt date default sysdate not null
+	renewaldate date not null
+);
+
+create table statementdetails(
+	id number(5) not null primary key,
+	accountid varchar2(40) not null,
+	constraint fk_statement foreign key (accountid) references customers(customerid),
+	balance decimal(8,2) default 0.0,
+	dt date default sysdate not null,
+	transtype varchar2(15),
+	constraint cktype check(transtype in ('Debited','Credited'))
+);
+
+create table accountclosed(
+	accountid varchar2(40) not null,
+	constraint fk_closed foreign key (accountid) references customers(customerid),
+	dt date default sysdate
+);
+
+create table admins(
+	adminid varchar2(30) not null primary key,
+	password varchar2(40)
+);
