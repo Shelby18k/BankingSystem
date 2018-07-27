@@ -1,6 +1,7 @@
 import re
 from customers import Customer
 from customers import RegisteredCustomer
+from customers import Admin
 from BankingSystem.customers import cur
 from BankingSystem.customers import con
 from datetime import date,datetime,timedelta
@@ -35,6 +36,9 @@ def check_user_identity(id,pwd,trigger):
     elif trigger == 1:
         stmt = "select case when exists(select 1 from customers where customerid= :1) then 'Y' else 'N' end as rec_exists from dual"
         cur.execute(stmt,{'1':id})
+    elif trigger == 2:
+        stmt = "select case when exists(select 1 from admins where adminid= :1 and password= :2) then 'Y' else 'N' end as rec_exists from dual"
+        cur.execute(stmt,{'1':id,'2':pwd})
     result = cur.fetchall()
     result = str(result[0][0])
     if result == 'N':
@@ -118,7 +122,28 @@ def create_customer(id,pwd):
     except:
         print("An error occurred")
         return
-            
+
+
+   
+
+def check_closed_accounts(a):
+    a.closed_accounts()
+
+
+def adminSubMenu(admin):
+    while True:
+        print("Welcome Admin!")
+        print("1. Print Closed Accounts History")
+        print("2. Admin Logout")
+        opt = selectOption(adminOptions)
+        if opt == 'Logout':
+            return
+        else:
+            opt(admin)
+    
+adminOptions = {1:check_closed_accounts,
+                2: 'Logout'
+    }             
             
 def address_change(customer):
     customer.address_change()
@@ -394,7 +419,15 @@ def SignIn():
     
 
 def AdminSignIn():
-    pass
+    adminid = input("Enter your admin id: ")
+    password = input("Enter your password: ")
+    tri = check_user_identity(adminid,password,2)
+    if tri == 0:
+        print('*'*10+"Wrong Credentials..!")
+        return
+    else:
+        a = Admin(adminid,password)
+        adminSubMenu(a)
 
 options = {1 : SignUp,
            2: SignIn,

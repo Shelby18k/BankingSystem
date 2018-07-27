@@ -174,52 +174,19 @@ class RegisteredCustomer(Customer):
             
            
         
-        
-        
-# con.rollback() 
-# con.commit()  
-# stmt = "drop table transactions"
-# cur.execute(stmt)
-# con.commit()
-# rdate = date.today() + timedelta(days=30)
-# rdate = rdate.strftime("%d-%m-%Y")
-# print(str(rdate))
-
-# stmt = "SELECT transcount,dt,renewaldate from transactioncount where accountid = :1"
-# cur.execute(stmt,{'1':'ST248179K1'})
-# res = cur.fetchall()
-# print(res)
-# count = int(res[0][0])
-# d1 = res[0][1]
-# d2 = res[0][2]
-# print(d1)
-# print(d2)
-# print(type(d2))
-# d1 = datetime.strptime(str(d1)[0:10],'%Y-%m-%d')
-# d2 = datetime.strptime(str(d1)[0:10],'%Y-%m-%d')
-# print(d2)
-# print(d1)
-# print(type(d2))
-# if d1== d2:
-#     print("Equeal")
-# if d1 > d2:
-#     print("Hello")
-# if d2 > d1:
-#     print("Hello1") 
-# print(d2-d1)
-
-# d1 = datetime.strptime('01-05-2018', '%Y-%m-%d')
-# d2 = datetime.strptime('05-08-2018', '%d-%m-%Y')
-# stmt = "select * from statementdetails where dt between to_date(:1,'dd-mm-yyy') and to_date(:2,'dd-mm-yyyy') and accountid = :3"
-# cur.execute(stmt,{'1':'01-05-2018','05-08-2018':d2,'3':'CT248179K1'})
-# res = cur.fetchall()
-# print(res)
-# 
-# stmt = 'select * from statementdetails'
-# cur.execute(stmt)
-# r = cur.fetchall()
-# print(r)
-
-# dat = date.today()
-# d = dat.strftime("%d-%m-%Y")
-# print(d)
+class Admin:
+    def __init__(self,adminid,password):
+        self.adminid = adminid
+        self.password = password
+    
+    def closed_accounts(self):
+        stmt = "select * from accountclosed"
+        cur.execute(stmt)
+        res = cur.fetchall()
+        if len(res) == 0:
+            print("*"*10+"No account has been closed")
+        else:
+            print("AccountID\t\tDate")
+            for r in res:
+                print("{a}\t\t{d}".format(a = r[0],d = str(r[1])[0:10]))
+            print("\n")
