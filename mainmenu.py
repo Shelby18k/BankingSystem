@@ -223,8 +223,6 @@ def money_withdrawal(customer):
     cur.execute(stmt,{'1':customer.accountNumber})
     res = cur.fetchall()
     a = float(res[0][0])
-    print(a)
-    print(amount)
     # Checking if balance is sufficient or not to withdraw
     if a >= amount:
         withdrawalAmount = a - 5000 # For current account holder as user needs to maintain min. 5000
@@ -243,11 +241,9 @@ def money_withdrawal(customer):
             amt = customer.money_withdrawal(amount)
             if amt:
                 print("Successfully Withdrawal: " + str(amt))
+                return
             else:
                     print('*'*6 + "No sufficient funds in your account, please deposit first hello\n")
-            return
-        else:
-            print('*'*6 + "No sufficient funds in your account, please deposit first\n")
             return
     else:
         print('*'*6 + "No sufficient funds in your account, please deposit first\n")
@@ -330,7 +326,7 @@ def account_closure(customer):
         if success == 1:
             print('*'*9+"Your account has been closed..!")
             print('*'*6+"Thanks for being our customer!")
-            return
+            return 'closed'
             
 
 # Dictionary for calling functions according to user input
@@ -356,7 +352,9 @@ def subMenu(customer):
         if opt == 'customer_logout':
             return
         else:
-            opt(customer)
+            a = opt(customer)
+            if a == 'closed':
+                return
         
 
 def SignUp():

@@ -102,7 +102,7 @@ class RegisteredCustomer(Customer):
         amount = self.enter_amount()
         today = date.today()
         today = today.strftime("%d-%m-%Y")
-        print(today)
+#         print(today)
         stmt = "UPDATE transactions SET balance = balance + :1,dt = to_date(:3,'dd-mm-yyyy') where accountid = :2"
         
         cur.execute(stmt,{'1':amount,'2':self.accountNumber,'3':today})
@@ -114,7 +114,7 @@ class RegisteredCustomer(Customer):
     def money_withdrawal(self,amt):
         today = date.today()
         today = today.strftime("%d-%m-%Y")
-        print("Hello")
+#         print("Hello")
         stmt = "UPDATE transactions SET balance = balance - :1,dt = to_date(:3,'dd-mm-yyyy') where accountid = :2"
         try:
             cur.execute(stmt,{'1':amt,'2':self.accountNumber,'3':today})
