@@ -160,6 +160,17 @@ class RegisteredCustomer(Customer):
             print('*'*8+"Balance is not sufficient")
             return 0
         
+    
+    def account_close(self):
+        stmt = "INSERT INTO accountclosed(accountid) values(:1)"
+        try:
+            cur.execute(stmt,{'1':self.accountNumber})
+            con.commit()
+            return 1
+        except:
+            print("Error in closing account\n")
+        
+        
             
            
         

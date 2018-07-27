@@ -9,6 +9,9 @@ from builtins import input
 accountType = {1: 'Saving',
                2: 'Current'}
 
+accountConfirm = {1:'Yes',
+                2: 'No'}
+
 print("\tWelcome to our bank of trust")
 print('\t\tMain Menu')
 
@@ -84,6 +87,18 @@ def enterAmount():
                 raise ValueError()   
         except:
             print('*'*6+"Please enter a valid amount:"+'*'*6)
+            
+
+def check_account_blocked(id):
+    stmt = "select case when exists(select 1 from accountclosed where accountid= :1) then 'Y' else 'N' end as rec_exists from dual"
+    cur.execute(stmt,{'1':id})
+    result = cur.fetchall()
+    result = str(result[0][0])
+    if result == 'Y':
+        return 1
+    else:
+        return 0
+    
 
 
 def create_customer(id,pwd):
@@ -211,18 +226,24 @@ def print_statement(customer):
         stmt = 'select balance,dt,transtype from statementdetails where dt between :1 and :2 and accountid = :3'
         cur.execute(stmt,{'1':fromDate,'2':toDate,'3':customer.accountNumber})
         res = cur.fetchall()
-        print("Balance\t\tDate\tTransType")
-        for r in res:
-            print("{b}\t\t{d}\t{t}".format(b=r[0],d=str(r[1])[0:10],t=r[2]))
+        if len(res) == 0:
+            print('*'*8+"No transactions done")
+        else:
+            print("Balance\t\tDate\tTransType")
+            for r in res:
+                print("{b}\t\t{d}\t{t}".format(b=r[0],d=str(r[1])[0:10],t=r[2]))
         
         stmt= "select toaccount,balance,dt,transtype from transfermoney where dt between :1 and :2 and accountid = :3"
         cur.execute(stmt,{'1':fromDate,'2':toDate,'3':customer.accountNumber})
         res = cur.fetchall()
         print("Transfer:\n")
-        print("ToAccount\tBalance\tDate\tTransType")
-        for r in res:
-            print("{to}\t{b}\t{d}\t{t}".format(to=r[0],b=r[1],d=str(r[2])[0:10],t=r[3]))
-        print("\n")
+        if len(res) == 0:
+            print('*'*8+"No transactions done")
+        else:
+            print("ToAccount\tBalance\tDate\tTransType")
+            for r in res:
+                print("{to}\t{b}\t{d}\t{t}".format(to=r[0],b=r[1],d=str(r[2])[0:10],t=r[3]))
+            print("\n")
             
     else:
         print("*"*8 +"Dates aren't valid")
@@ -248,9 +269,20 @@ def transfer_money(customer):
         return
         
 
-def account_closure():
-    print('Close')
-    pass
+def account_closure(customer):
+    print('*'*10+"Are you sure to close your account?  ")
+    print("1. Yes")
+    print("2. No")
+    choice = selectOption(accountConfirm)
+    if choice == 'No':
+        print("\tOK")
+        return
+    else:
+        success = customer.account_close()
+        if success == 1:
+            print('*'*9+"Your account has been closed..!")
+            print('*'*6+"Thanks for being our customer!")
+            return
             
 
 submenuOptions = {1: address_change,
@@ -328,32 +360,37 @@ def SignIn():
     totalAttempts = 0
     while totalAttempts < 3:
         customerid = input("Enter your customer id: ")
-        password = input("Enter your password: ")
-        userid = check_user_identity(customerid,password,0)
-        if userid == 0:
-            print("*"*6 + "Invalid UserID or password\n" + "*"*6)
-        elif userid == 1:
-            status = check_account_status(customerid,password)
-            if status == 0:
-                print("Your account has been blocked, contact admin")
-                break
-            elif status == 1:
-                c = create_customer(customerid,password)
-                subMenu(c)
-                break
-        if totalAttempts == 2:
-            result = checkUserId(customerid)
-            if result == 1:
-                stmt = 'UPDATE customers SET blocked = :1 where customerid = :2'
-                try:
-                    cur.execute(stmt,{'1':'yes','2':customerid})
-                    con.commit()
-                    print("You have exceeded the number of login attempts")
-                    print("*"*6 + " Account has been blocked " + "*"*6)
-                    print("Contact Admin: ")
-                except:
-                    print("Some error occurred")   
-        totalAttempts += 1
+        a = check_account_blocked(customerid)
+        if a == 1:
+            print('*'*10+"Your account has been close now!")
+            return
+        else:
+            password = input("Enter your password: ")
+            userid = check_user_identity(customerid,password,0)
+            if userid == 0:
+                print("*"*6 + "Invalid UserID or password\n" + "*"*6)
+            elif userid == 1:
+                status = check_account_status(customerid,password)
+                if status == 0:
+                    print("Your account has been blocked, contact admin")
+                    break
+                elif status == 1:
+                    c = create_customer(customerid,password)
+                    subMenu(c)
+                    break
+            if totalAttempts == 2:
+                result = checkUserId(customerid)
+                if result == 1:
+                    stmt = 'UPDATE customers SET blocked = :1 where customerid = :2'
+                    try:
+                        cur.execute(stmt,{'1':'yes','2':customerid})
+                        con.commit()
+                        print("You have exceeded the number of login attempts")
+                        print("*"*6 + " Account has been blocked " + "*"*6)
+                        print("Contact Admin: ")
+                    except:
+                        print("Some error occurred")   
+            totalAttempts += 1
     
 
 def AdminSignIn():
