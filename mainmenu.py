@@ -4,6 +4,7 @@ from customers import RegisteredCustomer
 from BankingSystem.customers import cur
 from BankingSystem.customers import con
 from datetime import date,datetime,timedelta
+from builtins import input
 
 accountType = {1: 'Saving',
                2: 'Current'}
@@ -109,32 +110,34 @@ def address_change(customer):
     
 
 def check_transaction_count(customer):
-    stmt = "SELECT transcount,dt,renewaldate from transactioncount where accountid = :1"
-    cur.execute(stmt,{'1':customer.accountNumber})
-    res = cur.fetchall()
-    count = int(res[0][0])
-    d1 = res[0][1]
-    d2 = res[0][2]
-    d1 = datetime.strptime(str(d1)[0:10],'%Y-%m-%d')
-    d2 = datetime.strptime(str(d2)[0:10],'%Y-%m-%d')
-    today = date.today()
-    today = datetime.strptime(str(today)[0:10],'%Y-%m-%d')
-    rdate = date.today() + timedelta(days=30)
-    rdate = rdate.strftime("%d-%m-%Y")
-    
-    if today > d2:
-        stmt = """UPDATE transactioncount set transcount = :1,dt = to_date(:2,'dd-mm-yyyy'),
-                renewaldate = to_date(:3,'dd-mm-yyyy') where accountid = :4"""
-        cur.execute(stmt,{'4':customer.accountNumber,'2':today,'3':rdate,'1':0})
-        con.commit()
-        stmt = "SELECT transcount from transactioncount where accountid= :1"
+    if customer.accountType == accountType.get(1):
+        stmt = "SELECT transcount,dt,renewaldate from transactioncount where accountid = :1"
         cur.execute(stmt,{'1':customer.accountNumber})
         res = cur.fetchall()
         count = int(res[0][0])
-    if count > 9:
-        print('*'*6 + "Sorry you have exhausted this month transaction limit")
-        print("\tYou cannot deposit more, this month return next month")
-        return 0
+        d1 = res[0][1]
+        d2 = res[0][2]
+        d1 = datetime.strptime(str(d1)[0:10],'%Y-%m-%d')
+        d2 = datetime.strptime(str(d2)[0:10],'%Y-%m-%d')
+        today = date.today()
+        today = today.strftime("%d-%m-%Y")
+        today = datetime.strptime(today,'%d-%m-%Y')
+        rdate = date.today() + timedelta(days=30)
+        rdate = rdate.strftime("%d-%m-%Y")
+        
+        if today > d2:
+            stmt = """UPDATE transactioncount set transcount = :1,dt = to_date(:2,'dd-mm-yyyy'),
+                    renewaldate = to_date(:3,'dd-mm-yyyy') where accountid = :4"""
+            cur.execute(stmt,{'4':customer.accountNumber,'2':today,'3':rdate,'1':0})
+            con.commit()
+            stmt = "SELECT transcount from transactioncount where accountid= :1"
+            cur.execute(stmt,{'1':customer.accountNumber})
+            res = cur.fetchall()
+            count = int(res[0][0])
+        if count > 9:
+            print('*'*6 + "Sorry you have exhausted this month transaction limit")
+            print("\tYou cannot deposit more, this month return next month")
+            return 0
 
 def money_deposit(customer):
     if customer.accountType == accountType.get(1):
@@ -150,30 +153,23 @@ def money_deposit(customer):
     elif customer.accountType == accountType.get(2):
         amt = customer.money_deposit()
         if amt:
-            stmt = "UPDATE transactioncount set transcount = transcount+1 where accountid = :1"
-            cur.execute(stmt,{'1':customer.accountNumber})
-            con.commit()
             print("You have deposited: " + str(amt))
     
 
 def money_withdrawal(customer):
-    transaction_count = check_transaction_count(customer)
-    if transaction_count == 0:
-        return
+    if customer.accountType == accountType.get(1):
+        transaction_count = check_transaction_count(customer)
+        if transaction_count == 0:
+            return
     amount = customer.enter_amount()
     stmt = "SELECT balance from transactions where accountid = :1"
     cur.execute(stmt,{'1':customer.accountNumber})
     res = cur.fetchall()
     a = float(res[0][0])
+    print(a)
+    print(amount)
     if a >= amount:
         withdrawalAmount = a - 5000
-        if customer.accountType == accountType.get(2) and withdrawalAmount >= amount:
-            amt = customer.money_withdrawal(amount)
-            if amt:
-                print("Successfully Withdrawal: " + str(amt))
-        else:
-            print('*'*6 + "No sufficient funds in your account, please deposit first\n")
-            return 
         if customer.accountType == accountType.get(1):
             amt = customer.money_withdrawal(amount)
             if amt:
@@ -182,19 +178,60 @@ def money_withdrawal(customer):
             stmt = "UPDATE transactioncount set transcount = transcount+1 where accountid = :1" 
             cur.execute(stmt,{'1':customer.accountNumber})
             con.commit()
+        
+        if customer.accountType == accountType.get(2) and withdrawalAmount >= amount:
+            amt = customer.money_withdrawal(amount)
+            if amt:
+                print("Successfully Withdrawal: " + str(amt))
+            else:
+                    print('*'*6 + "No sufficient funds in your account, please deposit first hello\n")
+            return
+        else:
+            print('*'*6 + "No sufficient funds in your account, please deposit first\n")
+            return
     else:
         print('*'*6 + "No sufficient funds in your account, please deposit first\n")
         return
     
+    
+    
+def enter_date():
+    while True:
+        fromDate = input("Enter start date in dd-mm-yyyy")
+        try:
+            fromDate = datetime.strptime(fromDate, '%d-%m-%Y')
+            return fromDate
+        except:
+            print("*"*8 + "Please enter a valid date")
 
-def print_statement():
-    print('Print')
-    pass
+def print_statement(customer):
+    fromDate = enter_date()
+    toDate = enter_date()
+    if toDate > fromDate:
+        stmt = 'select balance,dt,transtype from statementdetails where dt between :1 and :2 and accountid = :3'
+        cur.execute(stmt,{'1':fromDate,'2':toDate,'3':customer.accountNumber})
+        res = cur.fetchall()
+        print("Balance\t\tDate\tTransType")
+        for r in res:
+            print("{b}\t\t{d}\t{t}".format(b=r[0],d=str(r[1])[0:10],t=r[2]))
+        
+        stmt= "select toaccount,balance,dt,transtype from transfermoney where dt between :1 and :2 and accountid = :3"
+        cur.execute(stmt,{'1':fromDate,'2':toDate,'3':customer.accountNumber})
+        res = cur.fetchall()
+        print("Transfer:\n")
+        print("ToAccount\tBalance\tDate\tTransType")
+        for r in res:
+            print("{to}\t{b}\t{d}\t{t}".format(to=r[0],b=r[1],d=str(r[2])[0:10],t=r[3]))
+        print("\n")
+            
+    else:
+        print("*"*8 +"Dates aren't valid")
 
 def transfer_money(customer):
-    transaction_count = check_transaction_count(customer)
-    if transaction_count == 0:
-        return
+    if customer.accountType == accountType.get(1):
+        transaction_count = check_transaction_count(customer)
+        if transaction_count == 0:
+            return
     amount = customer.enter_amount()
     custAcct = input("Enter account no. of the person, you need to transfer: \n")
     exist = check_user_identity(custAcct,'HellNo',1)
@@ -271,12 +308,13 @@ def SignUp():
         with open("C:/Users/TushaR/eclipse-workspace/BankingSystem/src/BankingSystem/transactionid.txt") as f:
             file_str = f.read()
         file_int = int(file_str)
+        file_int += 1
         
         cur.execute(stmt,{'1':acctNo,'2':amt})
         stamt = "INSERT INTO statementdetails(id,accountid,balance,transtype) values(:1,:2,:3,:4)"
         cur.execute(stamt,{'1':file_int,'2':acctNo,'3':amt,'4':'Credited'})
         con.commit()
-        file_int += 1
+        
         with open("C:/Users/TushaR/eclipse-workspace/BankingSystem/src/BankingSystem/transactionid.txt",'w') as f:
             f.write(str(file_int))
     if acctNo:

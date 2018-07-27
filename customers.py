@@ -101,7 +101,8 @@ class RegisteredCustomer(Customer):
     def money_deposit(self):
         amount = self.enter_amount()
         today = date.today()
-        today = datetime.strptime(str(today)[0:10],'%Y-%m-%d')
+        today = today.strftime("%d-%m-%Y")
+        print(today)
         stmt = "UPDATE transactions SET balance = balance + :1,dt = to_date(:3,'dd-mm-yyyy') where accountid = :2"
         
         cur.execute(stmt,{'1':amount,'2':self.accountNumber,'3':today})
@@ -112,7 +113,7 @@ class RegisteredCustomer(Customer):
     
     def money_withdrawal(self,amt):
         today = date.today()
-        today = datetime.strptime(str(today),'%Y-%m-%d')
+        today = today.strftime("%d-%m-%Y")
         print("Hello")
         stmt = "UPDATE transactions SET balance = balance - :1,dt = to_date(:3,'dd-mm-yyyy') where accountid = :2"
         try:
@@ -195,3 +196,19 @@ class RegisteredCustomer(Customer):
 # if d2 > d1:
 #     print("Hello1") 
 # print(d2-d1)
+
+# d1 = datetime.strptime('01-05-2018', '%Y-%m-%d')
+# d2 = datetime.strptime('05-08-2018', '%d-%m-%Y')
+# stmt = "select * from statementdetails where dt between to_date(:1,'dd-mm-yyy') and to_date(:2,'dd-mm-yyyy') and accountid = :3"
+# cur.execute(stmt,{'1':'01-05-2018','05-08-2018':d2,'3':'CT248179K1'})
+# res = cur.fetchall()
+# print(res)
+# 
+# stmt = 'select * from statementdetails'
+# cur.execute(stmt)
+# r = cur.fetchall()
+# print(r)
+
+# dat = date.today()
+# d = dat.strftime("%d-%m-%Y")
+# print(d)
